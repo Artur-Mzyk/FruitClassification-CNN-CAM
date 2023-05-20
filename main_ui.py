@@ -25,8 +25,14 @@ import os
 import random
 import shutil
 import math
+import json
 
 img_width, img_height = 150, 150
+
+class_labels = ['RottenMango', 'FreshOrange', 'FreshCucumber', 'RottenTomato', 'FreshTomato', 'RottenStrawberry', 'RottenBellpepper', 'RottenOrange', 'FreshApple', 'RottenPotato', 'RottenCarrot', 'RottenBanana', 'FreshPotato', 'RottenApple', 'FreshBellpepper', 'FreshCarrot', 'RottenCucumber', 'FreshStrawberry', 'FreshMango', 'FreshBanana']
+with open('config.json') as config_file:
+    config = json.load(config_file)
+
 
 class GradCAM:
     def __init__(self, model, classIdx, layerName=None):
@@ -46,7 +52,6 @@ class GradCAM:
     def compute_heatmap(self, image, eps=1e-8):
         gradModel = Model(inputs=[self.model.inputs],
                           outputs=[self.model.get_layer(self.layerName).output, self.model.output])
-
         with tf.GradientTape() as tape:
             inputs = tf.cast(image, tf.float32)
             (convOutputs, predictions) = gradModel(inputs)
@@ -94,6 +99,15 @@ class Ui_MainWindow(object):
         self.label.setGeometry(QtCore.QRect(40, 60, 161, 16))
         self.label.setObjectName("label")
 
+        self.comboBox2 = QtWidgets.QComboBox(self.centralwidget)
+        self.comboBox2.setGeometry(QtCore.QRect(200, 80, 111, 22))
+        self.comboBox2.setObjectName("comboBox")
+        self.comboBox2.addItems(class_labels)
+
+        self.label2 = QtWidgets.QLabel(self.centralwidget)
+        self.label2.setGeometry(QtCore.QRect(200, 60, 161, 16))
+        self.label2.setObjectName("label2")
+
         self.start_button = QtWidgets.QPushButton(self.centralwidget)
         self.start_button.setGeometry(QtCore.QRect(40, 120, 113, 22))
         self.start_button.setObjectName("button_start")
@@ -111,11 +125,11 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.label.setText(_translate("MainWindow", "Wybrana sieć"))
+        self.label2.setText(_translate("MainWindow", "Produkt"))
         self.start_button.setText(_translate("MainWindow", "Start"))
 
     def predict_photo(self, photo, n=3):
@@ -131,17 +145,19 @@ class Ui_MainWindow(object):
         return preds
 
 
-    def plot_heatmap(self, image_path, files=None):
+    def plot_heatmap(self, image_path, class_label):
         """
         Plots 6 predictions with heatmap from given folders,
         if folders are None, chooses them randomly
         if files are not None it should contain paths to custom photos.
         """
+        class_idx = class_labels.index(class_label)
         fig, axs = plt.subplots(1, 1)
         fig.set_size_inches(14, 12)
         img_orig = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
         img_orig = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
         img_orig = cv2.resize(img_orig, (img_width, img_height))
+
 
         img = image.load_img(image_path, target_size=(img_width, img_height))
         img = image.img_to_array(img)
@@ -154,19 +170,20 @@ class Ui_MainWindow(object):
         heatmap = cv2.resize(heatmap, (img_width, img_height))
         (heatmap, output) = gradcam.overlay_heatmap(heatmap, img_orig, alpha=0.5)
 
-        axs[1, 1].imshow(output)
-        axs[1, 1].set_title(f"Class: {class_labels[class_idx]}\n "
+        axs.imshow(output)
+        axs.set_title(f"Class: {class_labels[class_idx]}\n "
                                      f"{preds[0][0]}: {np.round(preds[0][1] * 100, 2)}%\n"
                                      f"{preds[1][0]}: {np.round(preds[1][1] * 100, 2)}%\n"
                                      f"{preds[2][0]}: {np.round(preds[2][1] * 100, 2)}%")
-
+        plt.show()
 
     def start_algorithm(self):
-        self.model = load_model("model_vgg16.h5")
+        model_name = self.comboBox.currentText()
+        self.model = load_model(config[model_name])
         data = QFileDialog.getOpenFileName(
             parent=None,
             caption="Select a data file",
             directory=os.getcwd()
         )
         if data[0] != "":
-            self.predict_photo(data[0])
+            self.plot_heatmap(data[0], "FreshApple")

@@ -1,0 +1,4 @@
+{
+  "VGG": "path to vgg",
+  "ResNet": "path to resnet"
+}
