@@ -30,7 +30,7 @@ import json
 img_width, img_height = 150, 150
 
 class_labels = ['RottenMango', 'FreshOrange', 'FreshCucumber', 'RottenTomato', 'FreshTomato', 'RottenStrawberry', 'RottenBellpepper', 'RottenOrange', 'FreshApple', 'RottenPotato', 'RottenCarrot', 'RottenBanana', 'FreshPotato', 'RottenApple', 'FreshBellpepper', 'FreshCarrot', 'RottenCucumber', 'FreshStrawberry', 'FreshMango', 'FreshBanana']
-with open('config.json') as config_file:
+with open('FruitsAndVegetables_GUI\config.json') as config_file:
     config = json.load(config_file)
 
 
@@ -180,10 +180,11 @@ class Ui_MainWindow(object):
     def start_algorithm(self):
         model_name = self.comboBox.currentText()
         self.model = load_model(config[model_name])
+        product = self.comboBox2.currentText()
         data = QFileDialog.getOpenFileName(
             parent=None,
             caption="Select a data file",
             directory=os.getcwd()
         )
         if data[0] != "":
-            self.plot_heatmap(data[0], "FreshApple")
+            self.plot_heatmap(data[0], product)
